@@ -5,69 +5,117 @@
 #include <iomanip>
 #include <numeric> // For std::iota
 
-// Function to perform a single memory test iteration
-bool runMemoryTest(size_t blockSize, unsigned int pattern, std::mt19937& rng) {
-    std::vector<char> buffer(blockSize);
+// Function to print a progress bar
+void printProgressBar(long long current, long long total, int width) {
+    float progress = (float)current / total;
+    int barWidth = width - 7; // Account for " [xx%] "
+    int pos = barWidth * progress;
 
+    std::cout << "\r[";
+    for (int i = 0; i < barWidth; ++i) {
+        if (i < pos) std::cout << "=";
+        else if (i == pos) std::cout << ">";
+        else std::cout << " ";
+    }
+    std::cout << "] " << std::setw(3) << (int)(progress * 100.0) << "%" << std::flush;
+}
+
+// Function to perform a single memory test iteration
+bool runMemoryTest(size_t blockSize, unsigned int pattern, std::mt19937& rng, const std::string& testName) {
+    std::vector<char> buffer(blockSize);
+    long long chunkSize = blockSize / 100; // Update progress every 1%
+
+    std::cout << "  " << testName << " (Write): ";
     // Write pattern
     for (size_t i = 0; i < blockSize; ++i) {
         buffer[i] = static_cast<char>(pattern);
+        if (chunkSize > 0 && (i % chunkSize == 0 || i == blockSize - 1)) {
+            printProgressBar(i + 1, blockSize, 50);
+        }
     }
+    std::cout << std::endl;
 
+    std::cout << "  " << testName << " (Verify): ";
     // Verify pattern
     for (size_t i = 0; i < blockSize; ++i) {
         if (buffer[i] != static_cast<char>(pattern)) {
-            std::cerr << "Error: Mismatch at index " << i << ". Expected "
+            std::cerr << "\nError: Mismatch at index " << i << ". Expected "
                       << std::hex << static_cast<int>(pattern) << ", got "
                       << std::hex << static_cast<int>(buffer[i]) << std::endl;
             return false;
         }
+        if (chunkSize > 0 && (i % chunkSize == 0 || i == blockSize - 1)) {
+            printProgressBar(i + 1, blockSize, 50);
+        }
     }
+    std::cout << std::endl;
     return true;
 }
 
 // Function to perform a memory test with incrementing values
-bool runIncrementingMemoryTest(size_t blockSize) {
+bool runIncrementingMemoryTest(size_t blockSize, const std::string& testName) {
     std::vector<char> buffer(blockSize);
+    long long chunkSize = blockSize / 100; // Update progress every 1%
 
+    std::cout << "  " << testName << " (Write): ";
     // Write incrementing values
     for (size_t i = 0; i < blockSize; ++i) {
         buffer[i] = static_cast<char>(i % 256);
+        if (chunkSize > 0 && (i % chunkSize == 0 || i == blockSize - 1)) {
+            printProgressBar(i + 1, blockSize, 50);
+        }
     }
+    std::cout << std::endl;
 
+    std::cout << "  " << testName << " (Verify): ";
     // Verify incrementing values
     for (size_t i = 0; i < blockSize; ++i) {
         if (buffer[i] != static_cast<char>(i % 256)) {
-            std::cerr << "Error: Incrementing pattern mismatch at index " << i << ". Expected "
+            std::cerr << "\nError: Incrementing pattern mismatch at index " << i << ". Expected "
                       << std::hex << static_cast<int>(i % 256) << ", got "
                       << std::hex << static_cast<int>(buffer[i]) << std::endl;
             return false;
         }
+        if (chunkSize > 0 && (i % chunkSize == 0 || i == blockSize - 1)) {
+            printProgressBar(i + 1, blockSize, 50);
+        }
     }
+    std::cout << std::endl;
     return true;
 }
 
 // Function to perform a memory test with random values
-bool runRandomMemoryTest(size_t blockSize, std::mt19937& rng) {
+bool runRandomMemoryTest(size_t blockSize, std::mt19937& rng, const std::string& testName) {
     std::vector<char> buffer(blockSize);
     std::vector<char> original_values(blockSize);
     std::uniform_int_distribution<unsigned int> dist(0, 255);
+    long long chunkSize = blockSize / 100; // Update progress every 1%
 
+    std::cout << "  " << testName << " (Write): ";
     // Write random values
     for (size_t i = 0; i < blockSize; ++i) {
         original_values[i] = static_cast<char>(dist(rng));
         buffer[i] = original_values[i];
+        if (chunkSize > 0 && (i % chunkSize == 0 || i == blockSize - 1)) {
+            printProgressBar(i + 1, blockSize, 50);
+        }
     }
+    std::cout << std::endl;
 
+    std::cout << "  " << testName << " (Verify): ";
     // Verify random values
     for (size_t i = 0; i < blockSize; ++i) {
         if (buffer[i] != original_values[i]) {
-            std::cerr << "Error: Random pattern mismatch at index " << i << ". Expected "
+            std::cerr << "\nError: Random pattern mismatch at index " << i << ". Expected "
                       << std::hex << static_cast<int>(original_values[i]) << ", got "
                       << std::hex << static_cast<int>(buffer[i]) << std::endl;
             return false;
         }
+        if (chunkSize > 0 && (i % chunkSize == 0 || i == blockSize - 1)) {
+            printProgressBar(i + 1, blockSize, 50);
+        }
     }
+    std::cout << std::endl;
     return true;
 }
 
@@ -106,16 +154,16 @@ int main() {
         auto iterationStartTime = std::chrono::high_resolution_clock::now();
 
         // Test with fixed patterns
-        if (!runMemoryTest(blockSizeBytes, 0xAA, rng)) { overallSuccess = false; break; }
-        if (!runMemoryTest(blockSizeBytes, 0x55, rng)) { overallSuccess = false; break; }
-        if (!runMemoryTest(blockSizeBytes, 0xFF, rng)) { overallSuccess = false; break; }
-        if (!runMemoryTest(blockSizeBytes, 0x00, rng)) { overallSuccess = false; break; }
+        if (!runMemoryTest(blockSizeBytes, 0xAA, rng, "Pattern 0xAA")) { overallSuccess = false; break; }
+        if (!runMemoryTest(blockSizeBytes, 0x55, rng, "Pattern 0x55")) { overallSuccess = false; break; }
+        if (!runMemoryTest(blockSizeBytes, 0xFF, rng, "Pattern 0xFF")) { overallSuccess = false; break; }
+        if (!runMemoryTest(blockSizeBytes, 0x00, rng, "Pattern 0x00")) { overallSuccess = false; break; }
 
         // Test with incrementing pattern
-        if (!runIncrementingMemoryTest(blockSizeBytes)) { overallSuccess = false; break; }
+        if (!runIncrementingMemoryTest(blockSizeBytes, "Incrementing")) { overallSuccess = false; break; }
 
         // Test with random pattern
-        if (!runRandomMemoryTest(blockSizeBytes, rng)) { overallSuccess = false; break; }
+        if (!runRandomMemoryTest(blockSizeBytes, rng, "Random")) { overallSuccess = false; break; }
 
         auto iterationEndTime = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double, std::milli> iterationDuration = iterationEndTime - iterationStartTime;
