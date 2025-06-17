@@ -120,8 +120,8 @@ bool runRandomMemoryTest(size_t blockSize, std::mt19937& rng, const std::string&
 }
 
 int main() {
-    std::cout << "C++ User-Mode Memory Test\n";
-    std::cout << "--------------------------\n";
+    std::cout << "User-Mode Memory Test\n";
+    std::cout << "----------------------\n";
 
     size_t blockSizeMB;
     long long iterations;
